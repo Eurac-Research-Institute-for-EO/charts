@@ -48,8 +48,21 @@ podAnnotations: {}
 podLabels: {}
 
 persistence:
-    
-    existingVolume: ""
+
+    # Use an existing PVC instead of creating one.
+    # If set, no PVC is created by the chart.
+    existingClaim: ""
+
+    # Storage class for the workspace PVC.
+    # Set to "rclone" to use the rclone CSI driver (e.g. on EOEPCA with MinIO).
+    # Leave empty to use the cluster default storage class.
+    storageClassName: ""
+
+    # Access modes for the workspace PVC.
+    # Use ReadWriteMany when multiple pods (API + executor) need concurrent access,
+    # e.g. with the rclone CSI driver backed by S3/MinIO.
+    accessModes:
+      - ReadWriteOnce
 
     capacity: "8Gi"
 
