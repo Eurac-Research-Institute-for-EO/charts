@@ -18,7 +18,10 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["get", "list", "patch", "create" ]
+    verbs: ["get", "list", "patch", "create"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "patch"]
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -72,6 +75,9 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: openeo-argo-access-init
+  annotations:
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-delete-policy": "before-hook-creation"
 spec:
   template:
     spec:
@@ -89,8 +95,10 @@ spec:
             kind: Secret
             metadata:
               name: openeo-argo-access-sa.service-account-token
+              namespace: {{ .Release.Namespace }}
               annotations:
                 kubernetes.io/service-account.name: openeo-argo-access-sa
             type: kubernetes.io/service-account-token
             EOF
+            kubectl rollout restart deployment -l app.kubernetes.io/name=openeo-argo -n {{ .Release.Namespace }}
 {{- end }}
