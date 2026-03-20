@@ -4,7 +4,7 @@ metadata:
   name: openeo-job-cleanup
   namespace: {{ .Release.Namespace }}
 spec:
-  schedule: "0 3 * * *"  # Run daily at 3 AM
+  schedule: "0 3 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
@@ -15,7 +15,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: cleanup
-            image: bitnami/postgresql:16
+            image: docker.io/bitnamilegacy/postgresql:16.3.0-debian-12-r12
             env:
             - name: PGPASSWORD
               valueFrom:
@@ -32,7 +32,6 @@ spec:
             - -c
             - |
               echo "Starting cleanup of job results older than ${RETENTION_DAYS} days"
-              # Find and delete old job result directories
               found=0
               deleted=0
               for user_dir in /user_workspaces/*/; do
@@ -41,12 +40,10 @@ spec:
                   [ -d "$job_dir" ] || continue
                   found=$((found + 1))
                   job_id=$(basename "$job_dir")
-                  # Check if RESULTS dir is older than retention period
                   if [ -d "$job_dir/RESULTS" ]; then
                     if find "$job_dir/RESULTS" -maxdepth 0 -mtime +${RETENTION_DAYS} | grep -q .; then
                       echo "Deleting expired job: $job_id"
                       rm -rf "$job_dir"
-                      # Delete from DB
                       psql -h openeo-postgresql -U postgres -d postgres -c \
                         "DELETE FROM jobs WHERE job_id = '${job_id}';"
                       deleted=$((deleted + 1))
