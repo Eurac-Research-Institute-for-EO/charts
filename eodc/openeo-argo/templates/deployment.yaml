@@ -18,9 +18,9 @@ metadata:
   name: {{ include "openeo-argo.fullname" . }}
   labels:
     {{- include "openeo-argo.labels" . | nindent 4 }}
-  #annotations:
-    #"helm.sh/hook": "post-install,post-upgrade"
-    #"helm.sh/hook-weight": "100"
+  annotations:
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "100"
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
