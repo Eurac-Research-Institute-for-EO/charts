@@ -136,6 +136,8 @@ tolerations: []
 
 affinity: {}
 
+cleanup:
+  retentionDays: 30
 
 postgresql:
 

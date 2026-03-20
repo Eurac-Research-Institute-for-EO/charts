@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: openeo-job-cleanup
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: cleanup
+            image: bitnami/postgresql:16
+            env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openeo-postgresql
+                  key: postgres-password
+            - name: RETENTION_DAYS
+              value: "{{ .Values.cleanup.retentionDays | default 30 }}"
+            volumeMounts:
+            - name: workspace
+              mountPath: /user_workspaces
+            command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Starting cleanup of job results older than ${RETENTION_DAYS} days"
+              found=0
+              deleted=0
+              for user_dir in /user_workspaces/*/; do
+                [ -d "$user_dir" ] || continue
+                for job_dir in "$user_dir"*/; do
+                  [ -d "$job_dir" ] || continue
+                  found=$((found + 1))
+                  job_id=$(basename "$job_dir")
+                  if [ -d "$job_dir/RESULTS" ]; then
+                    if find "$job_dir/RESULTS" -maxdepth 0 -mtime +${RETENTION_DAYS} | grep -q .; then
+                      echo "Deleting expired job: $job_id"
+                      rm -rf "$job_dir"
+                      psql -h openeo-postgresql -U postgres -d postgres -c \
+                        "DELETE FROM jobs WHERE job_id = '${job_id}';"
+                      deleted=$((deleted + 1))
+                    fi
+                  fi
+                done
+              done
+              echo "Cleanup complete: scanned $found jobs, deleted $deleted"
+          volumes:
+          - name: workspace
+            persistentVolumeClaim:
+              claimName: openeo-workspace
