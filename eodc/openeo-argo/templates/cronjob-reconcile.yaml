@@ -41,3 +41,5 @@ spec:
                 secretKeyRef:
                   name: openeo-postgresql
                   key: postgres-password
+            - name: ALEMBIC_DIR
+              value: "/opt/openeo_argoworkflows_api/psql"
