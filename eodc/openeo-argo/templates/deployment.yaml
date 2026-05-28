@@ -146,6 +146,28 @@ spec:
                 secretKeyRef:
                   name: "openeo-postgresql"
                   key: postgres-password
+            {{- if .Values.s3.enabled }}
+            - name: S3_ENDPOINT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: openeo-s3-credentials
+                  key: endpoint_url
+            - name: S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: openeo-s3-credentials
+                  key: bucket
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openeo-s3-credentials
+                  key: access_key
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openeo-s3-credentials
+                  key: secret_key
+            {{- end }}
           volumeMounts:
             - name: workspace-mount
               mountPath: "{{ .Values.global.env.workspaceRoot }}"
