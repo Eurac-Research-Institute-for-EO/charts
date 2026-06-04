@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: openeo-job-reconcile
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: reconcile
+            image: {{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}
+            imagePullPolicy: Always
+            command: ["python", "-m", "openeo_argoworkflows_api.reconcile"]
+            env:
+            - name: ARGO_WORKFLOWS_SERVER
+              value: "http://openeo-argo-workflows-server.{{ .Release.Namespace }}.svc.cluster.local:2746"
+            - name: ARGO_WORKFLOWS_NAMESPACE
+              value: "{{ .Release.Namespace }}"
+            - name: ARGO_WORKFLOWS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: openeo-argo-access-sa.service-account-token
+                  key: token
+            - name: POSTGRESQL_HOST
+              value: "openeo-postgresql-hl.{{ .Release.Namespace }}.svc.cluster.local"
+            - name: POSTGRESQL_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_DB
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openeo-postgresql
+                  key: postgres-password
+            - name: ALEMBIC_DIR
+              value: "/opt/openeo_argoworkflows_api/psql"

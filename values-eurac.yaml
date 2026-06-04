@@ -1,0 +1,137 @@
+USER-SUPPLIED VALUES:
+affinity: {}
+argoworkflows:
+  enabled: true
+  singleNamespace: true
+autoscaling:
+  enabled: false
+  maxReplicas: 100
+  minReplicas: 1
+  targetCPUUtilizationPercentage: 80
+cleanup:
+  retentionDays: 2
+dask-gateway:
+  enabled: true
+  gateway:
+    backend:
+      worker:
+        extraContainerConfig:
+          volumeMounts:
+          - mountPath: /user_workspaces
+            name: user-workspace
+        extraPodConfig:
+          volumes:
+          - name: user-workspace
+            persistentVolumeClaim:
+              claimName: openeo-workspace
+    extraConfig:
+      optionHandler: |
+        from dask_gateway_server.options import Options, Integer, Float, String
+        def option_handler(options):
+          return {
+              "worker_cores": options.WORKER_CORES,
+              "worker_memory": "%fG" % options.WORKER_MEMORY,
+              "scheduler_extra_pod_labels": {'OPENEO_USER_ID': options.OPENEO_USER_ID, 'OPENEO_JOB_ID': options.OPENEO_JOB_ID },
+              "worker_extra_pod_labels": {'OPENEO_USER_ID': options.OPENEO_USER_ID, 'OPENEO_JOB_ID': options.OPENEO_JOB_ID },
+              "idle_timeout": options.CLUSTER_IDLE_TIMEOUT,
+              "image": options.IMAGE
+          }
+
+        c.Backend.cluster_options = Options(
+            Integer("WORKER_CORES", 4, min=1, max=12, label="Worker Cores"),
+            Float("WORKER_MEMORY", 12, min=1, max=24, label="Worker Memory (GiB)"),
+            String("OPENEO_USER_ID", "Unassigned", label="User identifier"),
+            String("OPENEO_JOB_ID", "Unassigned", label="Job identifier"),
+            Float("CLUSTER_IDLE_TIMEOUT", 300, label="Idle Timeout"),
+            String("IMAGE", "ghcr.io/dask/dask-gateway:2024.1.0", label="Worker image"),
+            handler=option_handler,
+        )
+  traefik:
+    service:
+      type: ClusterIP
+fullnameOverride: ""
+global:
+  env:
+    alembicDir: /opt/openeo_argoworkflows_api/psql
+    apiDescription: A K8S deployment of the openeo api for argoworkflows.
+    apiDns: openeo.eurac.edu
+    apiTLS: true
+    apiTitle: OpenEO ArgoWorkflows
+    daskClusterTimeout: "300"
+    daskWorkerCores: 1
+    daskWorkerLimit: 2
+    daskWorkerMemory: 4
+    executorImage: ghcr.io/eurac-research-institute-for-eo/openeo-argoworkflows-executor:latest
+    odicOrganisation: eurac
+    oidcOrganisation: eurac
+    oidcPolicies: ""
+    oidcUrl: https://edp-portal.eurac.edu/auth/realms/edp
+    stacCatalogueUrl: https://stac.eurac.edu
+    workspaceRoot: /user_workspaces
+image:
+  pullPolicy: IfNotPresent
+  repository: ghcr.io/eurac-research-institute-for-eo/openeo-argoworkflows-api
+  tag: latest
+imagePullSecrets: []
+ingress:
+  annotations: {}
+  className: ""
+  enabled: false
+  hosts:
+  - host: chart-example.local
+    paths:
+    - path: /
+      pathType: ImplementationSpecific
+  tls: []
+labels: {}
+livenessProbe:
+  httpGet:
+    path: /.well-known/openeo/
+    port: http
+nameOverride: ""
+nodeSelector: {}
+persistence:
+  accessModes:
+  - ReadWriteOnce
+  capacity: 8Gi
+  existingVolume: ""
+podAnnotations: {}
+podLabels: {}
+podSecurityContext: {}
+postgresql:
+  clusterDomain: cluster.local
+  enabled: true
+  image:
+    repository: bitnamilegacy/postgresql
+  service:
+    ports:
+      postgresql: "5432"
+readinessProbe:
+  httpGet:
+    path: /.well-known/openeo/
+    port: http
+redis:
+  auth:
+    enabled: false
+  image:
+    repository: bitnamilegacy/redis
+  replica:
+    replicaCount: 1
+replicaCount: 1
+resources: {}
+securityContext: {}
+service:
+  port: 8000
+  type: ClusterIP
+serviceAccount:
+  annotations: {}
+  automount: true
+  create: true
+  name: ""
+tolerations: []
+volumeMounts: []
+volumes: []
+
+
+s3:
+  enabled: true

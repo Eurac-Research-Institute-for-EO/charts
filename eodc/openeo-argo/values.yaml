@@ -139,6 +139,12 @@ affinity: {}
 cleanup:
   retentionDays: 30
 
+# S3 object store for job result storage.
+# Set enabled: true and create a secret named openeo-s3-credentials with keys:
+#   endpoint_url, bucket, access_key, secret_key
+s3:
+  enabled: false
+
 postgresql:
 
   enabled: true
