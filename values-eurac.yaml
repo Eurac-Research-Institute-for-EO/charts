@@ -58,6 +58,8 @@ global:
     apiTLS: true
     apiTitle: OpenEO ArgoWorkflows
     daskClusterTimeout: "300"
+    executorDeadline: "7200"
+    computeTimeout: "600"
     daskWorkerCores: 1
     daskWorkerLimit: 2
     daskWorkerMemory: 4
