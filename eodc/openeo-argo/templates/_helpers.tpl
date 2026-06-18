@@ -121,13 +121,6 @@ and of the Secret holding that token (created by the post-install hook).
 {{- end }}
 
 {{/*
-Name of the ServiceAccount used by the secret-fixer post-install hook.
-*/}}
-{{- define "openeo-argo.secretAccessSAName" -}}
-{{- printf "%s-secret-access-sa" (include "openeo-argo.prefix" .) -}}
-{{- end }}
-
-{{/*
 Name of the workspace PersistentVolumeClaim shared with the dask-gateway workers.
 Defaults to a static name (PVCs are namespace-isolated, and the dask-gateway
 subchart references this claim from non-templated values). Override with

@@ -10,35 +10,11 @@ rules:
     resources: ["workflows"]
     verbs: [ "get","create", "list", "update", "patch" ]
 ---
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: {{ include "openeo-argo.prefix" . }}-secret-access
-  namespace: {{ .Release.Namespace }}
-rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get", "list", "patch", "create"]
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    verbs: ["get", "list", "patch"]
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: {{ include "openeo-argo.secretAccessSAName" . }}
-  namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "openeo-argo.labels" . | nindent 4 }}
-automountServiceAccountToken: true
----
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ include "openeo-argo.argoAccessSAName" . }}
   namespace: {{ .Release.Namespace }}
-  annotations:
-    "helm.sh/hook": "pre-install, pre-upgrade"
   labels:
     {{- include "openeo-argo.labels" . | nindent 4 }}
 automountServiceAccountToken: true
@@ -57,48 +33,18 @@ subjects:
   name: {{ include "openeo-argo.argoAccessSAName" . }}
   namespace: {{ .Release.Namespace }}
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+# Long-lived API token for the Argo Workflows access ServiceAccount.
+# Declared directly (no Helm hook / Job) so it is created the same way under
+# `helm install`, `helm template | kubectl apply`, Kustomize and ArgoCD. The
+# kube-controller-manager token controller populates .data.token automatically.
+apiVersion: v1
+kind: Secret
 metadata:
-  name: {{ include "openeo-argo.prefix" . }}-secret-rb
+  name: {{ include "openeo-argo.argoTokenSecretName" . }}
   namespace: {{ .Release.Namespace }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: {{ include "openeo-argo.prefix" . }}-secret-access
-subjects:
-- kind: ServiceAccount
-  name: {{ include "openeo-argo.secretAccessSAName" . }}
-  namespace: {{ .Release.Namespace }}
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: {{ include "openeo-argo.prefix" . }}-argo-access-init
   annotations:
-    "helm.sh/hook": "post-install,post-upgrade"
-    "helm.sh/hook-delete-policy": "before-hook-creation"
-spec:
-  template:
-    spec:
-      restartPolicy: Never
-      serviceAccountName: {{ include "openeo-argo.secretAccessSAName" . }}
-      containers:
-      - name: openeo-argo-secret-fixer
-        imagePullPolicy: IfNotPresent
-        image: bitnami/kubectl:latest
-        command: ["sh", "-xc"]
-        args:
-          - |
-            kubectl apply -f - <<EOF
-            apiVersion: v1
-            kind: Secret
-            metadata:
-              name: {{ include "openeo-argo.argoTokenSecretName" . }}
-              namespace: {{ .Release.Namespace }}
-              annotations:
-                kubernetes.io/service-account.name: {{ include "openeo-argo.argoAccessSAName" . }}
-            type: kubernetes.io/service-account-token
-            EOF
-            kubectl rollout restart deployment -l app.kubernetes.io/name={{ include "openeo-argo.name" . }} -n {{ .Release.Namespace }}
+    kubernetes.io/service-account.name: {{ include "openeo-argo.argoAccessSAName" . }}
+  labels:
+    {{- include "openeo-argo.labels" . | nindent 4 }}
+type: kubernetes.io/service-account-token
 {{- end }}
