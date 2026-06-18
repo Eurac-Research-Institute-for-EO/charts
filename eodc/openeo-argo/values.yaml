@@ -33,6 +33,13 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+# Prefix for the resources this chart owns (sign-key secret, Argo RBAC/SA, the
+# post-install token secret, reconcile/cleanup cronjobs, ...). Leave empty to
+# derive it from the release name, so stable/dev overlays never collide and every
+# internal reference resolves automatically. Set explicitly only if you need a
+# fixed prefix independent of the release name.
+namePrefix: ""
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -50,6 +57,10 @@ podLabels: {}
 persistence:
 
     existingClaim: ""
+
+    # Name of the workspace PVC. Defaults to "openeo-workspace". If you override
+    # this, set the dask-gateway worker volume claimName below to the same value.
+    claimName: ""
 
     storageClassName: ""
 
@@ -140,10 +151,12 @@ cleanup:
   retentionDays: 30
 
 # S3 object store for job result storage.
-# Set enabled: true and create a secret named openeo-s3-credentials with keys:
+# Set enabled: true and create a secret (default name "openeo-s3-credentials",
+# overridable via secretName) with keys:
 #   endpoint_url, bucket, access_key, secret_key
 s3:
   enabled: false
+  # secretName: openeo-s3-credentials
 
 postgresql:
 

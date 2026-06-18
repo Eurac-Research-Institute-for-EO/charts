@@ -60,3 +60,87 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Common name prefix for resources this chart owns (secrets, RBAC, cronjobs, ...).
+Defaults to the release name so multiple instances (e.g. stable + dev) never
+collide and every internal reference resolves regardless of the namespace or
+overlay. Override with .Values.namePrefix if you need an explicit value.
+*/}}
+{{- define "openeo-argo.prefix" -}}
+{{- default .Release.Name .Values.namePrefix | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Resolve the fullname of a bundled subchart the same way the subchart itself does
+(Bitnami/Argo "common.names.fullname"). Call with a dict:
+  (dict "top" . "name" "<subchart>" "override" .Values.<subchart>.fullnameOverride)
+*/}}
+{{- define "openeo-argo.subchartFullname" -}}
+{{- $top := .top -}}
+{{- $name := .name -}}
+{{- $override := .override -}}
+{{- if $override -}}
+{{- $override | trunc 63 | trimSuffix "-" -}}
+{{- else if contains $name $top.Release.Name -}}
+{{- $top.Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-%s" $top.Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Fullnames of the bundled subcharts, used to build their in-cluster DNS / secret names.
+*/}}
+{{- define "openeo-argo.postgresql.fullname" -}}
+{{- include "openeo-argo.subchartFullname" (dict "top" . "name" "postgresql" "override" .Values.postgresql.fullnameOverride) -}}
+{{- end }}
+
+{{- define "openeo-argo.redis.fullname" -}}
+{{- include "openeo-argo.subchartFullname" (dict "top" . "name" "redis" "override" (index .Values "redis" "fullnameOverride")) -}}
+{{- end }}
+
+{{- define "openeo-argo.argoWorkflows.fullname" -}}
+{{- include "openeo-argo.subchartFullname" (dict "top" . "name" "argo-workflows" "override" (index .Values "argo-workflows" "fullnameOverride")) -}}
+{{- end }}
+
+{{- define "openeo-argo.daskGateway.fullname" -}}
+{{- include "openeo-argo.subchartFullname" (dict "top" . "name" "dask-gateway" "override" (index .Values "dask-gateway" "fullnameOverride")) -}}
+{{- end }}
+
+{{/*
+Name of the ServiceAccount whose token grants access to the Argo Workflows API,
+and of the Secret holding that token (created by the post-install hook).
+*/}}
+{{- define "openeo-argo.argoAccessSAName" -}}
+{{- printf "%s-argo-access-sa" (include "openeo-argo.prefix" .) -}}
+{{- end }}
+
+{{- define "openeo-argo.argoTokenSecretName" -}}
+{{- printf "%s.service-account-token" (include "openeo-argo.argoAccessSAName" .) -}}
+{{- end }}
+
+{{/*
+Name of the ServiceAccount used by the secret-fixer post-install hook.
+*/}}
+{{- define "openeo-argo.secretAccessSAName" -}}
+{{- printf "%s-secret-access-sa" (include "openeo-argo.prefix" .) -}}
+{{- end }}
+
+{{/*
+Name of the workspace PersistentVolumeClaim shared with the dask-gateway workers.
+Defaults to a static name (PVCs are namespace-isolated, and the dask-gateway
+subchart references this claim from non-templated values). Override with
+.Values.persistence.claimName, keeping the dask-gateway worker claimName in sync.
+*/}}
+{{- define "openeo-argo.workspaceClaimName" -}}
+{{- default "openeo-workspace" .Values.persistence.claimName -}}
+{{- end }}
+
+{{/*
+Name of the externally-provided S3 credentials Secret. Defaults to a static name
+(namespace-isolated); override with .Values.s3.secretName.
+*/}}
+{{- define "openeo-argo.s3SecretName" -}}
+{{- default "openeo-s3-credentials" .Values.s3.secretName -}}
+{{- end }}

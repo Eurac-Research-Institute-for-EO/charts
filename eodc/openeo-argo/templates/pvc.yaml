@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: openeo-workspace
+  name: {{ include "openeo-argo.workspaceClaimName" . }}
   namespace: {{ .Release.Namespace }}
 spec:
   accessModes:

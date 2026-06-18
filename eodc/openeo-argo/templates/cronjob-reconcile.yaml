@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: openeo-job-reconcile
+  name: {{ include "openeo-argo.prefix" . }}-job-reconcile
   namespace: {{ .Release.Namespace }}
 spec:
   schedule: "*/5 * * * *"
@@ -20,16 +20,16 @@ spec:
             command: ["python", "-m", "openeo_argoworkflows_api.reconcile"]
             env:
             - name: ARGO_WORKFLOWS_SERVER
-              value: "http://openeo-argo-workflows-server.{{ .Release.Namespace }}.svc.cluster.local:2746"
+              value: "http://{{ include "openeo-argo.argoWorkflows.fullname" . }}-server.{{ .Release.Namespace }}.svc.cluster.local:2746"
             - name: ARGO_WORKFLOWS_NAMESPACE
               value: "{{ .Release.Namespace }}"
             - name: ARGO_WORKFLOWS_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: openeo-argo-access-sa.service-account-token
+                  name: {{ include "openeo-argo.argoTokenSecretName" . }}
                   key: token
             - name: POSTGRESQL_HOST
-              value: "openeo-postgresql-hl.{{ .Release.Namespace }}.svc.cluster.local"
+              value: "{{ include "openeo-argo.postgresql.fullname" . }}-hl.{{ .Release.Namespace }}.svc.cluster.local"
             - name: POSTGRESQL_PORT
               value: "5432"
             - name: POSTGRES_USER
@@ -39,7 +39,7 @@ spec:
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: openeo-postgresql
+                  name: {{ include "openeo-argo.postgresql.fullname" . }}
                   key: postgres-password
             - name: ALEMBIC_DIR
               value: "/opt/openeo_argoworkflows_api/psql"
