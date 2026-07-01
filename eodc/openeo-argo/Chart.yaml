@@ -35,5 +35,6 @@ dependencies:
     version: 0.32.0
     repository: "https://argoproj.github.io/argo-helm"
   - name: dask-gateway
+    condition: daskgateway.enabled
     version: 2024.1.0
     repository: https://helm.dask.org

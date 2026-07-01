@@ -199,8 +199,12 @@ spec:
               value: "{{ .Values.global.env.oidcPolicies }}"
             - name: STAC_API_URL
               value: "{{ .Values.global.env.stacCatalogueUrl }}"
+            {{- if .Values.daskgateway.enabled }}
+            # Only set when the dask-gateway is deployed. When absent, the API
+            # sends a LOCAL dask profile and the executor runs Dask in-pod.
             - name: DASK_GATEWAY_SERVER
               value: "http://traefik-{{ include "openeo-argo.daskGateway.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:80"
+            {{- end }}
             - name: DASK_WORKER_CORES
               value: "{{ .Values.global.env.daskWorkerCores }}"
             - name: DASK_WORKER_MEMORY

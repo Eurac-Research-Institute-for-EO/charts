@@ -176,6 +176,12 @@ argoworkflows:
 
   enabled: true
 
+# Deploy the bundled dask-gateway. When false, DASK_GATEWAY_SERVER is not set on
+# the queue-worker, so the API sends a LOCAL dask profile and the executor runs
+# Dask in-pod (LocalCluster). Set false to avoid the flaky gateway on k3s (#140).
+daskgateway:
+  enabled: true
+
   singleNamespace: true
 
 
