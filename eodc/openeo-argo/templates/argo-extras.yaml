@@ -9,6 +9,12 @@ rules:
   - apiGroups: ["argoproj.io"]
     resources: ["workflows"]
     verbs: [ "get","create", "list", "update", "patch" ]
+  # Needed for GET /jobs/{id}/logs: the Argo server runs with --auth-mode=client
+  # and impersonates this SA's token to read pod logs. Without pods/log the log
+  # stream is empty (Web Editor shows no logs).
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
 ---
 apiVersion: v1
 kind: ServiceAccount
