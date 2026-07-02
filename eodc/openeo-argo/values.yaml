@@ -216,10 +216,31 @@ dask-gateway:
               persistentVolumeClaim:
                 claimName: openeo-workspace
 
-        extraContainerConfig: 
+        extraContainerConfig:
           volumeMounts:
             - name: user-workspace
               mountPath: "/user_workspaces"
+          # GDAL HTTP resilience for remote raster reads (openeo-argoworkflows#144).
+          # Without a low-speed abort, a stalled /vsicurl transfer hangs the worker
+          # until the job hits OPENEO_COMPUTE_TIMEOUT. These make stalled reads
+          # abort (30s below 1KB/s) and retry instead.
+          env:
+            - name: GDAL_HTTP_CONNECTTIMEOUT
+              value: "10"
+            - name: GDAL_HTTP_TIMEOUT
+              value: "120"
+            - name: GDAL_HTTP_LOW_SPEED_TIME
+              value: "30"
+            - name: GDAL_HTTP_LOW_SPEED_LIMIT
+              value: "1024"
+            - name: GDAL_HTTP_MAX_RETRY
+              value: "5"
+            - name: GDAL_HTTP_RETRY_DELAY
+              value: "2"
+            - name: GDAL_DISABLE_READDIR_ON_OPEN
+              value: "EMPTY_DIR"
+            - name: VSI_CACHE
+              value: "TRUE"
 
 
     extraConfig: 
